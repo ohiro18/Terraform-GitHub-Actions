@@ -1,0 +1,6 @@
+access_key = "xxxxxxxxxxxxxxxxx"
+secret_key = "xxxxxxxxxxxxxxxxx"
+region = "ap-northeast-1"
+zone = "ap-northeast-1a"
+project_name = "Terraform-GitHub-Actions-Test"
+ecs_password = "!Actions2021"

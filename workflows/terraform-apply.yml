@@ -1,0 +1,66 @@
+name: terraform apply
+
+on:
+  pull_request:
+    branches:
+      - master
+    types: [closed]
+env:
+  tf_version: '0.22.15'
+  tf_work_dir: '.'
+  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  GOOGLE_CREDENTIALS: ${{ secrets.GOOGLE_CREDENTIALS }}
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    if: ${{ github.event.pull_request.merged == true }}
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: terraform init
+        uses: hashicorp/terraform-github-actions@master
+        with:
+          tf_actions_version: ${{ env.tf_version }}
+          tf_actions_subcommand: init
+          tf_actions_working_dir: ${{ env.tf_work_dir }}
+
+      - name: terraform plan
+        id: plan
+        uses: hashicorp/terraform-github-actions@master
+        with:
+          tf_actions_version: ${{ env.tf_version }}
+          tf_actions_subcommand: plan
+          tf_actions_working_dir: ${{ env.tf_work_dir }}
+
+      # Deploymentを開始する
+      - name: Start Deployment
+        # terraform planで差分があるときのみ実行
+        if: ${{ steps.plan.outputs.tf_actions_plan_has_changes == 'true' }}
+        uses: bobheadxi/deployments@master
+        id: deployment
+        with:
+          step: start
+          token: ${{ secrets.GITHUB_TOKEN }}
+          env: production
+
+      - name: terraform apply
+        # terraform planで差分があるときのみ実行
+        if: ${{ steps.plan.outputs.tf_actions_plan_has_changes == 'true' }}
+        uses: hashicorp/terraform-github-actions@master
+        with:
+          tf_actions_version: ${{ env.tf_version }}
+          tf_actions_subcommand: apply
+          tf_actions_working_dir: ${{ env.tf_work_dir }}
+
+      # Deploymentを終了する
+      - name: Finish Deployment
+        uses: bobheadxi/deployments@master
+        # terraform planで差分があるときのみ実行
+        if: ${{ always() && steps.plan.outputs.tf_actions_plan_has_changes == 'true' }}
+        with:
+          step: finish
+          token: ${{ secrets.GITHUB_TOKEN }}
+          status: ${{ job.status }}
+          deployment_id: ${{ steps.deployment.outputs.deployment_id }}

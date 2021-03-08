@@ -47,7 +47,7 @@ jobs:
 
       - name: terraform apply
         # terraform planで差分があるときのみ実行
-        if: ${{ steps.plan.outputs.tf_actions_plan_has_changes == 'true' }}
+        if: ${{ always() && steps.plan.outputs.tf_actions_plan_has_changes == 'true' }}
         uses: hashicorp/terraform-github-actions@master
         with:
           tf_actions_version: ${{ env.tf_version }}
